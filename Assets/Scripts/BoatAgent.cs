@@ -28,13 +28,18 @@ public class BoatAgent : Agent
     
     private double preDist;
     private double curDist;
+    private double Dist;
+    private float Dist1;
     private float steeringPower = .3000f;
     private float direction;
-    private float speed = 30000;
+    private float speed = 300000;
+    public float TargetDistance = 100f;
     
     private float steeringAmount;
 
     private int EnemyRand;
+
+    private int count=0;
 
     private Vector3 ResetPosBoat;
     private Vector3 ResetPosEnemy;
@@ -43,32 +48,32 @@ public class BoatAgent : Agent
     
     public override void InitializeAgent()
     {
+        base.InitializeAgent();
         boatInitPos = agent.transform.position;
         boatInitRot = agent.transform.rotation;
         enemyInitPos = enemy.transform.position;
         enemyInitRot = enemy.transform.rotation;
 
         goalInitPos = goal.transform.position;
-        preDist = 100000;
+        preDist = curDist = Math.Sqrt(Math.Pow((goal.transform.position.x - agent.transform.position.x), 2) + Math.Pow((goal.transform.position.y - agent.transform.position.y), 2));
         rbBoat = agent.GetComponent<Rigidbody2D>();
         rbEnemy = enemy.GetComponent<Rigidbody2D>();
     }
 
     public override void CollectObservations()
     {
-        AddVectorObs(agent.transform.position.x);
-        AddVectorObs(agent.transform.position.y);
-        AddVectorObs(agent.transform.rotation.z);
-        AddVectorObs(agent.transform.position.z);
+        AddVectorObs(rbBoat.velocity);
+        AddVectorObs(rbBoat.angularVelocity);
 
-        AddVectorObs(enemy.transform.position.x);
-        AddVectorObs(enemy.transform.position.y);
-        AddVectorObs(enemy.transform.rotation.z);
-        AddVectorObs(enemy.transform.position.z);
+        Dist = Math.Sqrt(Math.Pow((goal.transform.position.x - agent.transform.position.x), 2) + Math.Pow((goal.transform.position.y - agent.transform.position.y), 2));
+        float Dist1 = Convert.ToSingle(Dist);
 
-        AddVectorObs(goal.transform.position.x);
-        AddVectorObs(goal.transform.position.y);
-        AddVectorObs(goal.transform.rotation.z);
+        AddVectorObs(Dist1);
+        
+
+        RaycastHit2D hit = Physics2D.Raycast(agent.transform.position, agent.transform.forward);
+        AddVectorObs(hit.distance);
+        
 
     }
 
@@ -80,83 +85,81 @@ public class BoatAgent : Agent
         switch (action)
         {
             case 1:
-                rbBoat.AddRelativeForce(Vector3.up * speed);
+                //agent.transform.position = agent.transform.position + 1f * Vector3.up;
+                rbBoat.AddRelativeForce(Vector2.up *speed);
                 
                 break;
             case 2:
-                rbBoat.AddRelativeForce(Vector3.down * speed);
+                //agent.transform.position = agent.transform.position + 1f * Vector3.down;
+                rbBoat.AddRelativeForce(Vector2.down * speed);
                 break;
 
             case 3:
-                
-                direction = Mathf.Sign(Vector3.Dot(rbBoat.velocity, rbBoat.GetRelativeVector(Vector3.up)));
+                //agent.transform.position = agent.transform.position + 1f * Vector3.RotateTowards;
+                direction = Mathf.Sign(Vector3.Dot(rbBoat.velocity, rbBoat.GetRelativeVector(Vector2.up)));
                 rbBoat.rotation += -0.5f * steeringPower * rbBoat.velocity.magnitude * direction;
-                rbBoat.AddRelativeForce(Vector3.right * rbBoat.velocity.magnitude / 2);
+                //rbBoat.AddRelativeForce(Vector3.right * rbBoat.velocity.magnitude / 2);
                 
                 break;
             case 4:
                 
-                direction = Mathf.Sign(Vector3.Dot(rbBoat.velocity, rbBoat.GetRelativeVector(Vector3.up)));
+                direction = Mathf.Sign(Vector3.Dot(rbBoat.velocity, rbBoat.GetRelativeVector(Vector2.up)));
                 rbBoat.rotation += 0.5f * steeringPower * rbBoat.velocity.magnitude * direction;
-                rbBoat.AddRelativeForce(Vector3.right * rbBoat.velocity.magnitude / 2);
+               // rbBoat.AddRelativeForce(Vector3.right * rbBoat.velocity.magnitude / 2);
                 break;
         }
         
-        curDist = Math.Sqrt(Math.Pow((goal.transform.position.x - agent.transform.position.x), 2f) + Math.Pow((goal.transform.position.y - agent.transform.position.y),2));
+        curDist = Math.Sqrt(Math.Pow((goal.transform.position.x - agent.transform.position.x), 2) + Math.Pow((goal.transform.position.y - agent.transform.position.y),2));
+        float calDist = Convert.ToSingle(preDist - curDist);
+        AddReward(calDist/50);
         
-        if (curDist < preDist)
-        {
-            AddReward(2f);
-            preDist = curDist;
-            //Debug.Log(preDist);
-        }
-        else if(curDist > preDist)
-        {
-            AddReward(-2f);
-            //Debug.Log(curDist);
-        }
 
-        if (curDist < 2f) 
-        {
-            AddReward(10f);
-            Done();
-        }
-        //if(agent.transform.position.x == rock.transform.position.x && agent)
+        Ray2D ray = new Ray2D(agent.transform.position, Vector2.zero);
+        RaycastHit2D hit = Physics2D.Raycast(ray.origin, ray.direction, 10f);
+        Debug.DrawRay(ray.origin, ray.direction*10f, Color.red);
+        //Debug.Log(hit.distance);
+        
 
 
-        void OnCollisionEnter2D(Collision2D collision)
-
-        {
-            Debug.Log("insert");
-            if (collision.collider.tag == "stone")
-            {
-                Debug.Log("Collision stone");
-                SetReward(-5f);
-                Done();
-            }
-            if (collision.gameObject.tag == "goal")
-            {
-                Debug.Log("Collsion goal");
-                SetReward(10f);
-                Done();
-            }
-        }
 
     }
-    
+    private void OnCollisionEnter2D(Collision2D collision)
+
+    {
+        
+        if (collision.collider.tag == "stone")
+        {
+           
+            SetReward(-0.1f);
+            count = count + 1;
+            if (count == 5)
+            {
+                SetReward(-0.5f);
+                Done();
+                count = 0;
+            }
+            //Done();
+        }
+        if (collision.collider.tag == "goal")
+        {
+            
+            SetReward(1f);
+            Done();
+        }
+    }
+
     public override void AgentReset()
     {
         agent.transform.position = boatInitPos;
         agent.transform.rotation = boatInitRot;
-        enemy.transform.position = enemyInitPos;
-        enemy.transform.rotation = enemyInitRot;
+     
 
         rbBoat.velocity = Vector2.zero;
-       
-        rbEnemy.velocity = Vector2.zero;
-
-        preDist = 100000f;
+        rbBoat.angularVelocity =0f;
         
+
+        preDist = curDist = Math.Sqrt(Math.Pow((goal.transform.position.x - agent.transform.position.x), 2) + Math.Pow((goal.transform.position.y - agent.transform.position.y), 2));
+
     }
 
     

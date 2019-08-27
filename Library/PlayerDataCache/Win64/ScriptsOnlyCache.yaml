@@ -1,5 +1,7 @@
 ScriptsOnlyBuild:
   usedScripts:
+    Assembly-CSharp-Editor.dll:
+    - MLAgents.LearningBrainEditor
     Assembly-CSharp.dll:
     - BoatAcademy
     - BoatAgent
@@ -93,10 +95,6 @@ ScriptsOnlyBuild:
       Script: {instanceID: 0}
     - Class: 156049354
       Script: {instanceID: 0}
-    - Class: 483693784
-      Script: {instanceID: 0}
-    - Class: 1839735485
-      Script: {instanceID: 0}
   scriptHashData:
   - hash:
       serializedVersion: 2
@@ -130,7 +128,7 @@ ScriptsOnlyBuild:
     className: TennisAgent
   - hash:
       serializedVersion: 2
-      Hash: 47f4933e8de499c74a44e3afe36ad1ea
+      Hash: 90f88c3b2a0f1efc47206d12c9c55016
     assemblyName: Assembly-CSharp.dll
     namespaceName: 
     className: BoatAgent
